@@ -4,8 +4,8 @@ import sys
 os.chdir("..")
 import pandas as pd
 import re
-from utils import translate_dna2aa
-from functions_ import mask_ref_in_variants_df
+from scripts.utils import translate_dna2aa
+from scripts.functions_ import mask_ref_in_variants_df
 import numpy as np
 
 def divide_alignments(blast_alignments, cut_site_seq, query_seq, read_dir="R1", cut_read_start= 12): 
@@ -160,10 +160,10 @@ def characterize_DMS_blast_alignment(DMS_alignments, ref, data_type = "AA", read
 
         if "-" in hseq or "-" in qseq:
             seq_with_off_target_indels += 1
-            shift = 0 ## Count the shift of the position compared to the reference, that occurs if there is an insertion in the qseq 
+            shift = 0 # Count the shift of the position compared to the reference that occurs if there is an insertion in the qseq 
 
             for idx,nt in enumerate(qseq): 
-                pos = idx - shift # Adjust for the shift in the index, due to prior insertions
+                pos = idx - shift # Adjust for the shift in the index due to prior insertions
 
                 if read_dir == "R2": 
                     pos = len(ref) - (len(hseq)-qseq.count("-")) + pos
@@ -173,7 +173,7 @@ def characterize_DMS_blast_alignment(DMS_alignments, ref, data_type = "AA", read
 
                 if nt == "-":
                     indels.loc["insertion", pos] += 1
-                    shift += 1 # Correct for the shift in the index, due to the insertion
+                    shift += 1 # Correct for the shift in the index due to the insertion
                 
             continue
 

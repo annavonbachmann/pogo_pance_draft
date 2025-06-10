@@ -1,9 +1,10 @@
+# --- Import necessary modules ---
 import os
 from Bio.SeqIO import QualityIO
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
-from utils import dna_rev_comp, translate_dna2aa
+from scripts.utils import dna_rev_comp, translate_dna2aa
 import pandas as pd
 import seaborn as sns
 import pickle as pkl
@@ -11,18 +12,30 @@ import matplotlib.colors as mcolors
 import os.path
 from matplotlib.lines import Line2D
 import matplotlib.gridspec as gridspec
-from functions_ import *
+from scripts.functions_ import *
 from scripts.preprocessing_functions import *
 import matplotlib
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-# Configure figure parameters.
+# ======================== PLOTTING SETTINGS ========================
+
+# --- Seaborn theme configuration ---
+custom_params = {
+    "axes.spines.right": False,
+    "axes.spines.top": False,
+    "axes.linewidth": 1
+}
+sns.set_theme(context="paper", style='ticks', palette="Greys_r", rc=custom_params)
+
+# --- General matplotlib settings ---
+fs = 8  # font size
+plt.rcParams['svg.fonttype'] = 'none'
 mpl.rcParams.update({
     'font.family': 'Avenir Next',
     'font.weight': 'demi', 
-    'font.size': 8,
+    'font.size': fs,
     'text.color': '#231F20',
     'axes.labelcolor': '#231F20',
     'xtick.color': '#231F20',
@@ -33,43 +46,31 @@ mpl.rcParams.update({
     'pdf.fonttype': 42,
     'text.usetex': False
 })
+sns.set_context("paper", rc={
+    "font.size": fs,
+    "axes.titlesize": fs + 1,
+    "axes.labelsize": fs,
+    "axes.linewidth": 1,
+    "xtick.labelsize": fs,
+    "ytick.labelsize": fs,
+    "legend.fontsize": fs,
+    "legend.title_fontsize": fs + 1
+})
 
 
-custom_params = {"axes.spines.right": False, "axes.spines.top": False,'axes.linewidth':1}
-sns.set_theme(context="paper",
-              style='ticks',
-              palette="Greys_r",rc=custom_params
-             )
-plt.rcParams['svg.fonttype'] = 'none'
-lw = 1
-lw = 1
-fs = 6
-hi = 6.69291
-wi = 7.08661
-nr = 5
-
-short_fn = np.vectorize(lambda x: x[:5])
-#matplotlib.rcParams.update({'font.size': fs})
-matplotlib.rcParams['axes.linewidth'] = 1
-sns.set_context("paper", rc={"font.size":fs,
-                             "axes.titlesize":fs+1,
-                             "axes.labelsize":fs,
-                             'axes.linewidth':1,    
-                            "xtick.labelsize": fs,
-                            "ytick.labelsize": fs,
-                            "legend.fontsize": fs,
-                            "legend.title_fontsize": fs+1}) 
-
+# ======================== PLOTTING FUNCTIONS FOR ANALYSIS ========================
 
 def coverage_plot(coverage_df, 
                   samplename = "", 
                   FigFolder = None, color = "blue"): 
     """
-    plot read coverage 
+    Plot the read coverage across positions.
 
-    coverage_df: df with the coverage of each position, e.g by calling variants_df.sum()
-    samplename: name of the variant
-    FigFolder: folder to save the figure
+    Parameters:
+    - coverage_df (pd.Series): Coverage (read count) for each position.
+    - samplename (str): Sample or variant name.
+    - FigFolder (str): Optional path to save the plot.
+    - color (str): Line color for coverage.
     """
 
     plt.plot(coverage_df, color = color)
@@ -77,11 +78,11 @@ def coverage_plot(coverage_df,
     plt.ylabel("Read counts")
     plt.title(f'{samplename} read depth')
     plt.xticks(list(range(0,len(coverage_df), 50)))
-    if FigFolder:
-        if not os.path.exists(FigFolder):
-            os.makedirs(FigFolder)
-        plt.savefig(f'{FigFolder}/{samplename}_coverage.pdf')
-        plt.savefig(f'{FigFolder}/{samplename}_coverage.png')
+    # if FigFolder:
+    #     if not os.path.exists(FigFolder):
+    #         os.makedirs(FigFolder)
+    #     plt.savefig(f'{FigFolder}/{samplename}_coverage.pdf')
+    #     plt.savefig(f'{FigFolder}/{samplename}_coverage.png')
     plt.show()
     plt.close()
 
@@ -92,39 +93,38 @@ def plot_mutation_spectrum(data,
                            FigFolder = None, 
                            colormap = "viridis",
                            data_type = "DNA",
-                           figuresize = (4.76,6.69291/2)):
+                           figuresize = (4.76,6.69291/2),
+                           ticks = [0.0, 0.5, 1.0]):
     """
-    plot mutation spectrum (%) as heatmap
+    Plot mutation spectrum as a heatmap showing base substitutions.
 
-    data = dataframe with the mutagenic spectrum (rows = reference nt, columns = mutated nt), can be calculated using mut_spectrum()
-    savepath = folder path to save the figure
-    samplename = name of the sample 
+    Parameters:
+    - data (pd.DataFrame): Matrix with ref bases as rows and mutated bases as columns.
+    - samplename (str): Sample name to include in plot title.
+    - FigFolder (str): Optional path to save the figure.
+    - colormap (str): Matplotlib colormap to use.
+    - data_type (str): 'DNA' or 'AA'; determines if values are annotated.
+    - figuresize (tuple): Figure dimensions in inches.
+    - ticks (list): Custom ticks for colorbar.
     """
     f, ax = plt.subplots(figsize=figuresize)
     f.subplots_adjust(wspace=0.01)
     sns.heatmap(data, annot=True if data_type=='DNA' else False, linewidths=.5, ax=ax, cbar = False, square = True, linecolor = "black", cmap = colormap, vmin=0)
-    # Get image from heatmap for colorbar
+
     im = ax.collections[0]
-
-
-    # Add a new axes for the colorbar (adjust the position as needed)
-    cbar_ax = f.add_axes([0.15, -0.05, 0.25, 0.03])  # [left, bottom, width, height] in figure coords
-
-    # Create horizontal colorbar with custom ticks and label
+    cbar_ax = f.add_axes([0.15, -0.05, 0.25, 0.03])
     cbar = f.colorbar(im, cax=cbar_ax, orientation="horizontal")
-    cbar.set_ticks([0.0, 2.5, 5.0])
-    cbar.ax.set_xticklabels(["0.0", "2.5", "5.0"])
+    cbar.set_ticks(ticks)
+    tick_labels = [f"{round(t) if i == len(ticks) - 1 else round(t, 1):.1f}" for i, t in enumerate(ticks)]
+    cbar.ax.set_xticklabels(tick_labels)
     cbar.set_label("Proportion (%)", fontsize=8)
     cbar.ax.tick_params(labelsize=8)
     plt.xlabel('Mutated base (%)')
     ax.set_ylabel('Reference base (%)', labelpad=8)
 
     ax.set_yticklabels(ax.get_yticklabels(), rotation=0, fontsize = 8)
-    ax.tick_params(axis='y', pad=2)  # Adjust spacing between ticks and labels
-
-
-
-    ax.yaxis.set_label_coords(-0.2, 0.5)  # Move label left and centered
+    ax.tick_params(axis='y', pad=2) 
+    ax.yaxis.set_label_coords(-0.2, 0.5) 
     for _, spine in ax.spines.items():
         spine.set_visible(True)
         spine.set_linewidth(.5)
@@ -132,15 +132,14 @@ def plot_mutation_spectrum(data,
     ax.set_xticklabels(ax.get_xticklabels(), rotation=1)
     plt.title(f"{samplename}")
 
-    if FigFolder:
-        if not os.path.exists(FigFolder):
-            os.makedirs(FigFolder)
-        plt.savefig(f"{FigFolder}/{samplename}_mutagenic_spectrum_perc.pdf")
-        plt.savefig(f"{FigFolder}/{samplename}_mutagenic_spectrum_perc.png")
+    # if FigFolder:
+        # if not os.path.exists(FigFolder):
+            # os.makedirs(FigFolder)
+        # plt.savefig(f"{FigFolder}/{samplename}_mutagenic_spectrum_perc.pdf")
+        # plt.savefig(f"{FigFolder}/{samplename}_mutagenic_spectrum_perc.png")
 
     plt.show()
     plt.close()
-
 
 
 def plot_mut_rate_per_pos(data, 
@@ -151,11 +150,16 @@ def plot_mut_rate_per_pos(data,
                           vmax = None,
                           figuresize = (20,2)):
     """
-    plot the mutation rate per position 
+    Plot mutation rate per sequence position as a heatmap.
 
-    data: df with the relative frequency of each Nt/Codon/AA at each position
-    ref_seq: reference DNA sequence
-    data_type: set to "DNA", "AA" or "Codons"
+    Parameters:
+    - data (pd.DataFrame): Relative frequency of each base/codon/AA at each position.
+    - ref_seq (str): DNA or protein reference sequence.
+    - data_type (str): 'DNA', 'AA', or 'Codons'.
+    - samplename (str): Sample name for plot title.
+    - FigFolder (str): Optional path to save the plot.
+    - vmax (float): Maximum value for color scaling.
+    - figuresize (tuple): Size of the figure in inches.
     """
     data = data.sum(axis = 0)
 
@@ -171,10 +175,10 @@ def plot_mut_rate_per_pos(data,
     plt.xlabel("Position")
     plt.xticks(rotation = 1 if data_type != "Codons" else 90,fontsize=6 if data_type != "DNA" else 3)
     plt.title(samplename)
-    if FigFolder:
-        if not os.path.exists(FigFolder):
-            os.makedirs(FigFolder)
-        plt.savefig(f"{FigFolder}/{samplename}_mutation_rate_per_{data_type}_position.pdf", bbox_inches="tight")
+    # if FigFolder:
+        # if not os.path.exists(FigFolder):
+            # os.makedirs(FigFolder)
+        # plt.savefig(f"{FigFolder}/{samplename}_mutation_rate_per_{data_type}_position.pdf", bbox_inches="tight")
     plt.show()
     plt.close()
 
@@ -190,13 +194,18 @@ def plot_mutation_enrichment(variants_df,
                              vmax = None,
                              figuresize = (5.669288000000001,2.625)):
     """
-    plot mutation enrichment (heatmap, with ref nts/codons/AA in grey)
+    Plot mutation enrichment per position with heatmap.
 
-    variants_df: df with relative counts of each Nt/AA/Codon (rows) at each position (columns), (call mask_ref_in_variants_dict() prior to set ref Nt/AA/Codon to NA, then shown as grey)
-    data_type: set to "DNA", "AA" or "Codons" 
-    ref_seq: reference sequence (should be DNA sequence if data_type is "DNA" or "Codons", and AA sequence if data_type is "AA")
-    samplename: plot title
-    FigFolder: folder to save the figure
+    Parameters:
+    - variants_df (pd.DataFrame): Relative counts matrix of each base/codon/AA.
+    - ref_seq (str): Reference sequence.
+    - samplename (str): Sample name for title.
+    - data_type (str): 'DNA', 'AA', or 'Codons'.
+    - FigFolder (str): Optional save path.
+    - cmap (str): Color map.
+    - cbar_label (str): Label for colorbar.
+    - vmax (float): Max value for colorbar.
+    - figuresize (tuple): Size of the figure.
     """
 
     if data_type in ["DNA", "AA"]:
@@ -207,26 +216,19 @@ def plot_mutation_enrichment(variants_df,
 
     plt.figure(figsize=figuresize)    
     ax = sns.heatmap(data=variants_df, cmap=cmap, cbar_kws={'label': cbar_label, "pad": 0.02}, yticklabels=True, xticklabels=False, center=0 if cmap == "coolwarm" else None, vmax=0.0024, vmin=-vmax if (cmap=="coolwarm" and vmax) else None)
-
-    # for _, spine in ax.spines.items():
-    #     spine.set_visible(True)
-    #     spine.set_linewidth(2)
     ax.set_yticklabels(ax.get_yticklabels(), rotation=1)
-    # ax.xaxis.set_tick_params(width=2)
     rotation = 90 if data_type == "Codons" else 1
-    # ax.set_xticklabels(seq_pos, rotation=rotation)
     ax.yaxis.set_tick_params(width=2)
-    #ax.set_facecolor('#ECEBE4')
     ax.grid(False)
     plt.title(samplename)
     plt.ylim(top = .0024)
     plt.xlabel("Sequence")
 
-    if FigFolder:    
-        if not os.path.exists(FigFolder):
-            os.makedirs(FigFolder)
-        plt.savefig(f"{FigFolder}/{samplename}_{data_type}_mutation_enrichment.pdf", bbox_inches="tight")
-        plt.savefig(f"{FigFolder}/{samplename}_{data_type}_mutation_enrichment.png", bbox_inches="tight")
+    # if FigFolder:    
+    #     if not os.path.exists(FigFolder):
+    #         os.makedirs(FigFolder)
+    #     plt.savefig(f"{FigFolder}/{samplename}_{data_type}_mutation_enrichment.pdf", bbox_inches="tight")
+    #     plt.savefig(f"{FigFolder}/{samplename}_{data_type}_mutation_enrichment.png", bbox_inches="tight")
     
     plt.show()
     plt.close()
@@ -251,6 +253,31 @@ def plot_temporal_enrichment(enrichment_df_dict,
                             enrichment_cmap = "viridis", 
                             set_over_color = "orange", 
                             coverage_cmap = "magma"):
+    
+    """
+    Plot mutation enrichment over time (or rounds), optionally with coverage and bias.
+
+    Parameters:
+    - enrichment_df_dict (dict): Dictionary with sample data, each containing 'mut_enrichment' and 'coverage'.
+    - ref (str): Reference sequence.
+    - combine_mut_rates (bool): Whether to sum over rows before plotting.
+    - color_above_vmax_orange (bool): Highlight values above vmax in orange.
+    - vmax (float): Max value for colorbar.
+    - show_cbar_for_each (bool): Show individual colorbars per subplot.
+    - plt_titles (list): Titles for each subplot.
+    - show_plttitles (bool): Show titles on subplots.
+    - plot_coverage (bool): Plot coverage as bottom panel.
+    - bias_per_pos (list): Optional bias values to show.
+    - show_only_pos (list): Index list of positions to subset.
+    - ref_annot (list): Optional custom X-axis labels.
+    - return_df (bool): Return combined dataframe.
+    - FigFolder (str): Optional path to save.
+    - figsize (tuple): Size of the overall figure.
+    - data_type (str): 'DNA', 'AA', or 'Codons'.
+    - enrichment_cmap (str): Colormap for enrichment heatmaps.
+    - set_over_color (str): Color for out-of-range enrichment.
+    - coverage_cmap (str): Colormap for coverage heatmap.
+    """
 
     if return_df: 
         combined_df = pd.DataFrame(index = (enrichment_df_dict.keys()), columns = list(range(len(ref))), data = 0, dtype = np.float64)
@@ -261,20 +288,17 @@ def plot_temporal_enrichment(enrichment_df_dict,
     fig, axes =  plt.subplots(pltsize,1, figsize=figsize)
     fig.subplots_adjust(hspace=0.5 if show_plttitles else 0.1)
 
+    # --- Adjust subplot position if coverage and/or bias is shown ---
     if not show_plttitles and plot_coverage:
-        ## move the last subplot a bit down to make space for the labels    
-        last_ax = axes[-1] if not bias_per_pos else axes[-2]         # Get the last subplot
-        # Adjust the last subplot's position
-        pos = last_ax.get_position()    # Get its current position
+        last_ax = axes[-1] if not bias_per_pos else axes[-2] 
+        pos = last_ax.get_position() 
         last_ax.set_position([pos.x0, pos.y0 - 0.015, pos.width, pos.height]) 
         if bias_per_pos:
-            pos =  axes[-1].get_position()    # Get its current position
+            pos =  axes[-1].get_position() 
             axes[-1].set_position([pos.x0, pos.y0 - 0.015, pos.width, pos.height]) 
-
     idx = 0 
-
+    # --- Plot mutation enrichment for each sample ---
     my_cmap = plt.get_cmap(enrichment_cmap).copy()
-
     if color_above_vmax_orange:
         my_cmap.set_over(set_over_color)
 
@@ -314,32 +338,31 @@ def plot_temporal_enrichment(enrichment_df_dict,
         
         idx += 1
 
+    # --- Add coverage heatmap ---
     if plot_coverage:
         sns.heatmap(pd.DataFrame(coverage), ax=axes[pltsize-1],square=False, cbar_kws={'label': f"coverage pos selection c3", "pad": 0.02}, vmin=0, yticklabels=False, xticklabels=False, vmax=500, cbar=show_cbar_for_each, cmap=coverage_cmap)
         
+    # --- Add bias heatmap ---
     if bias_per_pos:
         spec_cmap = sns.light_palette("black", n_colors=30, reverse=False, as_cmap=True)
         vmin_bias = min(bias_per_pos)
         vmax_bias = max(bias_per_pos)
 
         if show_only_pos:
-            bias_per_pos = [bias_per_pos[pos] for pos in show_only_pos] ## filter to pos of interest
+            bias_per_pos = [bias_per_pos[pos] for pos in show_only_pos] # Filter to position of interest
 
 
         sns.heatmap(pd.DataFrame(bias_per_pos).T, ax=axes[pltsize-2], cmap=spec_cmap, square=False, cbar_kws={'label': "chance of codon mutation", "pad": 0.02}, yticklabels=False, xticklabels=False, cbar=show_cbar_for_each, vmin=vmin_bias, vmax=vmax_bias)
 
-        
+    # --- Add global colorbars if needed ---
     if not show_cbar_for_each:
         if not vmax: 
             print("Please set vmax to show one colorbar for all")
             exit()
-        ## add at the bottom of the figure horizontally a cbar for the relative counts
         cbar_ax = fig.add_axes([0.13, 0.05, 0.15, 0.02])
         cbar = fig.colorbar(axes[0].collections[0], cax=cbar_ax, orientation = "horizontal")
         cbar.set_label("mutation rate", fontsize = 15)
         cbar.ax.tick_params(labelsize=10)
-
-        ## add cbar also for coverage and biases
         if plot_coverage:
             cbar_ax = fig.add_axes([0.32, 0.05, 0.15, 0.02])
             cbar = fig.colorbar(axes[pltsize-1].collections[0], cax=cbar_ax, orientation = "horizontal")
@@ -352,14 +375,13 @@ def plot_temporal_enrichment(enrichment_df_dict,
             cbar.set_label('chance of codon mutation', fontsize = 15)
             cbar.ax.tick_params(labelsize=10)
 
-    if FigFolder:
-        if not os.path.exists(FigFolder):
-            os.makedirs(FigFolder)
+    # if FigFolder:
+    #     if not os.path.exists(FigFolder):
+    #         os.makedirs(FigFolder)
         
-        dattype = data_type if not combine_mut_rates else "combined" + data_type
-        name = f"PANCE_mut_enrichment_all_sections_{dattype}.pdf" if not show_only_pos else f"PANCE_mut_enrichment_all_sections_high_mut_pos_{dattype}.pdf"
-
-        plt.savefig(os.path.join(FigFolder, name), dpi=300)
+    # dattype = data_type if not combine_mut_rates else "combined" + data_type
+    # name = f"PANCE_mut_enrichment_all_sections_{dattype}.pdf" if not show_only_pos else f"PANCE_mut_enrichment_all_sections_high_mut_pos_{dattype}.pdf"
+    # plt.savefig(os.path.join(FigFolder, name), dpi=300)
 
     if return_df:
         if show_only_pos:
@@ -370,6 +392,18 @@ def plot_temporal_enrichment(enrichment_df_dict,
 
 
 def plot_indel_freqs(indels, filename, FigFolder = None, roi_start_idx = None, roi_end_idx = None, color1= "#C7F9CC", color2 = "#38A3A5"):
+    """
+    Plot insertion and deletion frequencies across positions.
+
+    Parameters:
+    - indels (pd.DataFrame): DataFrame with rows ['insertion', 'deletion'] and columns = positions.
+    - filename (str): Sample name for title.
+    - FigFolder (str): Optional save path.
+    - roi_start_idx (int): Region-of-interest start index (vertical line).
+    - roi_end_idx (int): Region-of-interest end index (vertical line).
+    - color1 (str): Color for insertions.
+    - color2 (str): Color for deletions.
+    """
     fig, axes = plt.subplots(1, figsize=(15,5))
     plt.plot(indels.columns, indels.loc["insertion",:], label = "insertion", color = color1)
     plt.plot( indels.columns, indels.loc["deletion",:], label = "deletion",alpha = 0.5, color = color2)
@@ -382,8 +416,8 @@ def plot_indel_freqs(indels, filename, FigFolder = None, roi_start_idx = None, r
     plt.xlabel("Position")
     plt.ylabel("Frequency")
     plt.title(f"Indel frequency {filename}")
-    if FigFolder:
-        plt.savefig(f"{FigFolder}/{filename}_indel_freq.pdf", bbox_inches='tight')
-        plt.savefig(f"{FigFolder}/{filename}_indel_freq.png", bbox_inches='tight')
+    # if FigFolder:
+    #     plt.savefig(f"{FigFolder}/{filename}_indel_freq.pdf", bbox_inches='tight')
+    #     plt.savefig(f"{FigFolder}/{filename}_indel_freq.png", bbox_inches='tight')
     plt.show()
     plt.close()

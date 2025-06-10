@@ -1,29 +1,31 @@
+# --- Import necessary modules ---
 import pandas as pd 
 import pysam
 import os
 from Bio import SeqIO
-from utils import translate_dna2aa
-from functions_ import mask_ref_in_variants_df
+from scripts.utils import translate_dna2aa
+from scripts.functions_ import mask_ref_in_variants_df
 import numpy as np
+import re
 
 
+# --- Characterizes variants and indels in Nanopore reads for DMS analysis ---
 def characterize_DMS_Nanopore(aligned_reads, ref, data_type = "AA"):
     """
-    Function to characterize the DMS alignments, by counting the number of insertions, deletions and substitutions per position
+    Characterizes DMS alignments by counting insertions, deletions, and substitutions per position.
 
-    args:
-    DMS_alignments: dict, with the sequences of insert that is mutated 
-    ref: str, reference DNA sequence 
-    data_type: str, "AA", "DNA" or "Codons
-    read_dir: str, "R1" or "R2"
-    cut_to_same_start: bool, if True, the sequences are cut to the same start position, otherwise, start and end positions have to be provided as query_from and query_to keys
+    Parameters:
+    - aligned_reads: List of aligned read sequences (list of str)
+    - ref: Reference DNA sequence (str)
+    - data_type: Output format: "AA" for amino acids, "DNA", or "Codons" (str)
+    - read_dir: string, "R1" for forward or "R2" for reverse
+    - cut_to_same_start: bool, sequences cut at same start position if True, otherwise provide start/end positions as query_form and query_to
 
-    returns:
-    all_variants: dict, with the counts of the variants per position
-    indels_freq: pd.DataFrame, with the counts of insertions and deletions per position (normalized to # alignments)
-    enrichment_counts: pd.DataFrame, with the counts of the variants per position, with the reference sequence masked
-    enrichment_relative: pd.DataFrame, with the relative counts of the variants per position, with the reference sequence masked
-
+    Returns:
+    - all_variants: Variant counts per position (dict)
+    - enrichment_counts: Variant counts per position with reference masked (pd.DataFrame)
+    - enrichment_relative: Relative frequencies of variants with reference masked (pd.DataFrame)
+    - indels_freq: Frequency of insertions and deletions per position (pd.DataFrame)
     """
 
     all_variants = {}
@@ -31,10 +33,12 @@ def characterize_DMS_Nanopore(aligned_reads, ref, data_type = "AA"):
     included_seq = 0
     indels = pd.DataFrame(columns = range(len(ref)), index = ["insertion"], data = 0)
 
+    # --- Characterizes variants and indels in Nanopore reads for DMS analysis ---
     reference = translate_dna2aa(ref) if data_type == "AA" else ref
     if data_type == "Codons": 
         reference = [reference[i:i+3] for i in range(0, len(reference)//3*3, 3)]
 
+    # --- Initialize variant tracking dictionary ---
     if data_type == "AA":
         for idx in range(len(reference)):
             all_variants[idx] = {'A':0, 'C':0, 'D':0, 'E':0, 'F':0, 'G':0, 
@@ -51,18 +55,19 @@ def characterize_DMS_Nanopore(aligned_reads, ref, data_type = "AA"):
             all_variants[idx] = {codon: 0 for codon in codons}
 
 
+    # --- Analyze each alignment for indels and substitutions ---
     for alignment in aligned_reads:
         
-        if "-" in alignment: ## track indels
+        if "-" in alignment: 
             seq_with_off_target_indels += 1
-            shift = 0 ## here, we count the shift of the position compared to the reference, that occurs if there is an insertion in the qseq 
+            shift = 0 # Count the shift of the position compared to the reference that occurs if there is an insertion in the qseq 
 
             for idx,nt in enumerate(alignment): 
-                pos = idx - shift # adjust for the shift in the index, due to prior insertions
+                pos = idx - shift # Adjust for the shift in the index, due to prior insertions
 
                 if nt == "-":
                     indels.loc["insertion", pos] += 1
-                    shift += 1 ## to correct for the shift in the index, due to the insertion
+                    shift += 1 # Correct for the shift in the index due to the insertion
 
         if data_type == "Codons":
             alignment = [alignment[i:i+3] for i in range(0, len(alignment)//3*3, 3)]
@@ -75,6 +80,7 @@ def characterize_DMS_Nanopore(aligned_reads, ref, data_type = "AA"):
                 variant = "X"
             all_variants[idx][variant] += 1
        
+    # --- Normalize and mask reference variants ---
     indels_freq = indels/len(aligned_reads)
     print(seq_with_off_target_indels, "sequences have off target indels")
     print(len(aligned_reads), "sequences are included in the enrichment analysis")
@@ -86,28 +92,30 @@ def characterize_DMS_Nanopore(aligned_reads, ref, data_type = "AA"):
 
     return all_variants, enrichment_counts,enrichment_relative, indels_freq
 
-import re
 
+# --- Processes BAM files to clean reads and align them to reference with frame correction ---
 def read_cleaning_(input_folder, ref, cut_n_bases_from_start=48):
     """
-    process aligned reads so that they are forced to be in frame, i.e. if there is a deletion in the read, a "-" is added, if there is a insertion in the read, the position is skipped. 
-    This is necessary due to the high error/indel rate of Nanopore sequencing 
-    Also makes sure that all reads start at the same position (cut_n_bases_from_start)
+    Cleans and aligns Nanopore reads to force frame consistency and handle indels.
 
-    args: 
-    input_folder: folder with .bam files that should be processed
-    ref: reference sequence, to which the reads were aligned
-    cut_n_bases_from_start: number of positions, that should be cut from the reference start (also the reads), so that all of the reads start (in frame) at the same position (if they do align to this position, the reads will be thrown out) --> make sure that after cutting these many bases from the ref start, the read is in frame
+    Parameters:
+    - input_folder: Path to folder containing .bam files (str)
+    - ref: Reference DNA sequence (str)
+    - cut_n_bases_from_start: Number of bases to trim from start for frame alignment (int)
 
-    returns: 
-    1. a list of all processed reads, 2. a dataframe of indels that are present in the reads after alignment 3. a list of the qualities corresponding to the reads (insertions are skipped, deletions are given empty strings)
+    Returns:
+    - all_reads: List of processed read sequences (list of str)
+    - indels: Insertions and deletions per reference position (pd.DataFrame)
+    - all_qualities: Base quality scores per read (list of lists)
     """
+    # --- Collect all BAM files in the input folder ---
     bam_files = [f for f in os.listdir(input_folder) if f.endswith('.bam')]
     all_reads = []
     indels = pd.DataFrame(columns=range(len(ref)), index=["I", "D"], data=0)
     all_qualities = []
 
-    cigar_pattern = re.compile(r"(\d+)([MIDNSHP=X])")  # Regex to extract (length, operation)
+    # --- Define regex pattern to parse CIGAR strings ---
+    cigar_pattern = re.compile(r"(\d+)([MIDNSHP=X])")  
 
     for file_nr, bamfile_name in enumerate(bam_files):
         bam_path = os.path.join(input_folder, bamfile_name)
@@ -119,14 +127,15 @@ def read_cleaning_(input_folder, ref, cut_n_bases_from_start=48):
             if read.is_unmapped or read.query_sequence is None:
                 print(f"Skipping read {read.query_name}")
                 continue
-
+            # --- Initialize alignment variables ---
             alignment_start = read.reference_start
             seq = read.query_sequence
             qualitities = read.query_qualities
             refined_qualities = []
             refined_seq_list = []
-            ref_pos = 0  # Reference position in the read
+            ref_pos = 0 
 
+            # --- Parse the CIGAR operations ---
             cigar_operations = [(int(length), op) for length, op in cigar_pattern.findall(read.cigarstring)]
 
             query_pos = 0  # Track position in the read sequence
@@ -138,13 +147,13 @@ def read_cleaning_(input_folder, ref, cut_n_bases_from_start=48):
                     refined_qualities.extend(qualitities[query_pos:query_pos + length])
                     query_pos += length
                     ref_pos += length
-                elif operation == "I":  # Insertion (extra bases in read)
-                    indels.loc["I", ref_pos] += 1# length
+                elif operation == "I":  # Insertion 
+                    indels.loc["I", ref_pos] += 1
                     query_pos += length
-                elif operation == "D":  # Deletion (missing bases in read)
+                elif operation == "D":  # Deletion
                     refined_qualities.extend([""] * length)
                     refined_seq_list.extend("-" * length)
-                    indels.loc["D",ref_pos] += 1#length
+                    indels.loc["D",ref_pos] += 1
                     ref_pos += length
                 elif operation == "N":  # Skipped region in reference
                     ref_pos += length
@@ -152,12 +161,13 @@ def read_cleaning_(input_folder, ref, cut_n_bases_from_start=48):
                     query_pos += length
                 elif operation == "H":  # Hard clipping (ignored bases, not in read)
                     continue
-                elif operation == "P":  # Padding (shouldn't appear in nanopore data)
+                elif operation == "P":  # Padding (shouldn't appear in Nanopore data)
                     continue
 
+            # --- Join sequence list into string ---
             refined_seq = "".join(refined_seq_list)
 
-            # Cut off bases from the start if needed
+            # --- Trim to standardized start position if possible ---
             if alignment_start < cut_n_bases_from_start:
                 cut_start = cut_n_bases_from_start - alignment_start
                 refined_seq = refined_seq[cut_start:]
@@ -172,35 +182,38 @@ def read_cleaning_(input_folder, ref, cut_n_bases_from_start=48):
     return all_reads, indels, all_qualities
 
 
-
+# --- Extracts left and right linker regions from aligned Nanopore reads ---
 def get_linker_regions(input_folder, ref, cut_site_seq_left, cut_site_seq_right, left_linker_region_len, right_linker_region_len):
     """ 
-    Function to extract the linker regions from the Nanopore reads
+    Extracts linker regions from aligned Nanopore reads based on cut sites.
 
-    args:
-    input_folder: str, path to the folder with the Nanopore bam files
-    ref: str, reference sequence
-    cut_site_seq_left: seq of the left linker (start of the insert)
-    cut_site_seq_right: seq of the right linker (end of the insert)
-    left_linker_region_len: int, length of the left linker region (i.e. the number of bases to extract before the left linker pos) = len left linker read
-    righ_linker_region_len: int, length of the right linker region (i.e. the number of bases to extract after the right linker pos) = len right linker read
+    Parameters:
+    - input_folder: Path to folder with BAM files (str)
+    - ref: Reference DNA sequence (str)
+    - cut_site_seq_left: Sequence of left linker at start of insert (str)
+    - cut_site_seq_right: Sequence of right linker at end of insert (str)
+    - left_linker_region_len: Length of left linker region to extract (int)
+    - right_linker_region_len: Length of right linker region to extract (int)
 
-    returns:
-    all_left_linkers: list, with the left linker regions
-    all_right_linkers: list, with the corresponding right linker regions
-
+    Returns:
+    - all_left_linkers: Left linker regions by read ID (dict)
+    - all_right_linkers: Right linker regions by read ID (dict)
     """
+    # --- List all BAM files in the input folder ---
     bam_files = [f for f in os.listdir(input_folder) if f.endswith('.bam')]
+    # --- Initialize dictionaries to store linker regions ---
     all_left_linkers = {}
     all_right_linkers = {}
     indels = pd.DataFrame(columns=range(len(ref)), index=["I", "D"], data=0)
-    #all_qualities = []
+    
+    # --- Track number of reads where linker could not be extracted ---
     left_linker_excluded = 0
     right_linker_excluded = 0
-    cigar_pattern = re.compile(r"(\d+)([MIDNSHP=X])")  # Regex to extract (length, operation)
+    # --- Compile regex pattern to parse CIGAR strings --- 
+    cigar_pattern = re.compile(r"(\d+)([MIDNSHP=X])") 
 
     id_nr = 0
-
+    # --- Loop through all BAM files ---
     for file_nr, bamfile_name in enumerate(bam_files):
         bam_path = os.path.join(input_folder, bamfile_name)
         bamfile = pysam.AlignmentFile(bam_path, "rb")
@@ -208,27 +221,27 @@ def get_linker_regions(input_folder, ref, cut_site_seq_left, cut_site_seq_right,
         print("Status:", file_nr + 1, "/", len(bam_files), "done")
 
         for read in bamfile.fetch():
+            # --- Skip unmapped reads or reads without sequence ---
             if read.is_unmapped or read.query_sequence is None:
                 print(f"Skipping read {read.query_name}")
                 continue
-
             
             alignment_start = read.reference_start
             seq = read.query_sequence
-            qualitities = read.query_qualities
+            # --- Initialize aligned read and reference lists ---
             refined_seq_list = []
             refined_ref_list = []
-            ref_pos = 0  # Reference position in the read
+            ref_pos = 0
 
+            # --- Get CIGAR operations and initialize positions ---
             cigar_operations = [(int(length), op) for length, op in cigar_pattern.findall(read.cigarstring)]
-
             query_pos = 0  # Track position in the read sequence
             ref_pos = alignment_start  # Start position in reference
 
+            # --- Simulate alignment by iterating through CIGAR operations ---
             for length, operation in cigar_operations:
                 if operation == "M":  # Matches (or mismatches)
                     refined_seq_list.extend(seq[query_pos:query_pos + length])
-                    #refined_qualities.extend(qualitities[query_pos:query_pos + length])
                     refined_ref_list.extend(ref[ref_pos:ref_pos+length])
                     query_pos += length
                     ref_pos += length
@@ -250,28 +263,31 @@ def get_linker_regions(input_folder, ref, cut_site_seq_left, cut_site_seq_right,
                     query_pos += length
                 elif operation == "H":  # Hard clipping (ignored bases, not in read)
                     continue
-                elif operation == "P":  # Padding (shouldn't appear in nanopore data)
+                elif operation == "P":  # Padding (shouldn't appear in Nanopore data)
                     continue
-            
+            # --- Build aligned sequences as strings ---
             refined_seq = "".join(refined_seq_list)
             refined_ref = "".join(refined_ref_list)
-
+            # --- Find cut sites in the aligned reference ---
             cut_site_left = refined_ref.find(cut_site_seq_left) 
             cut_site_right = refined_ref.find(cut_site_seq_right) 
 
-            if cut_site_left != -1 and cut_site_right != 1: ## if -1, there are insertions in start of LOV2, thus seq not in ref seq and we do not include these seq
+            # --- Extract linker regions only if both cut sites are found ---
+            if cut_site_left != -1 and cut_site_right != 1:
+                # --- Extract left linker sequence preceding the left cut site ---
                 all_left_linkers["id"+str(id_nr)] = {"hseq" : refined_seq[cut_site_left-left_linker_region_len:cut_site_left], 
                                                      "qseq" : refined_ref[cut_site_left-left_linker_region_len:cut_site_left]}
-                
+                # --- Extract right linker sequence following the right cut site ---
                 cut_site_right = cut_site_right + len(cut_site_seq_right)
                 all_right_linkers["id"+str(id_nr)] = {"hseq": refined_seq[cut_site_right:cut_site_right+right_linker_region_len],
                                                  "qseq": refined_ref[cut_site_right:cut_site_right+right_linker_region_len]}
                 
             else: 
+                # --- Count how many reads were excluded due to missing cut sites ---
                 left_linker_excluded +=1
                 right_linker_excluded +=1
 
-            id_nr += 1
+            id_nr += 1 # --- Update read ID counter ---
         print(f"Processed {bamfile_name}")
 
     print("Total left linkers:", sum([l != "" for l in all_left_linkers]))
@@ -282,37 +298,46 @@ def get_linker_regions(input_folder, ref, cut_site_seq_left, cut_site_seq_right,
 
 
 
-
+# --- Generates genotype dictionary from amino acid sequences of the reads ---
 def get_genotype_dict_from_AAseqs(all_Aas, ref_AAseq, ref_aa_annot, not_masked_positions = None, combined = False): 
     """
-    Function to get the genotype dictionary from the AA sequences of the reads
+    Extracts genotype information from amino acid (AA) sequences of aligned reads by comparing them to a reference.
 
-    all_Aas: list of AA sequences of the reads
-    ref_AAseq: reference AA sequence
-    ref_aa_annot: list of the reference AA annotations
-    not_masked_positions: list of positions that should be considered
-    combined: whether or not the kind of mutation should be considered when calculating the genotypes
+    Parameters:
+    - all_Aas: List of AA sequences from the reads (list of str)
+    - ref_AAseq: Reference AA sequence (str)
+    - ref_aa_annot: List of AA position annotations (e.g. 'A23') from the reference (list of str)
+    - not_masked_positions: Positions to include in the comparison; others will be ignored (list of int or None)
+    - combined: Whether to group mutations by position only (True) or include the substituted AA (False) (bool)
 
-    returns: 
-    genotypes: dictionary with the genotypes and their counts
+    Returns:
+    - genotypes: Genotype labels (e.g. 'A23V_T45M' or 'A23_T45' if combined=True) with counts (dict)
     """
+    # --- Initialize dictionary to store genotype counts ---
     genotypes = {}
 
+    # --- Loop through each AA sequence from the reads ---
     for read in all_Aas:
         variant = []
+        # --- Loop through each amino acid in the sequence ---
         for idx, Aa in enumerate(read): 
+            # --- Skip masked positions if specified ---
             if not_masked_positions and idx not in not_masked_positions: ## if the position is masked, skip
                 continue
             else:
+                # --- If the amino acid is not a masked 'X' and differs from the reference ---
                 if Aa != "X" and Aa != ref_AAseq[idx]: 
+                    # --- Create mutation string; either with or without the changed AA, depending on 'combined' flag ---
                     observed_mut = f"{ref_aa_annot[idx]}{Aa}" if not combined else ref_aa_annot[idx]
                     variant.append(observed_mut)
             
+        # --- Determine genotype label: 'WT' if no mutations, or joined mutation list ---
         if len(variant) == 0: 
             variant = "WT"
         else: 
             variant = "_".join(variant)
 
+        # --- Count how many times each genotype occurs ---
         genotypes[variant] = genotypes.get(variant, 0) + 1
         
     return genotypes

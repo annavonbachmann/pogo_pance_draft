@@ -1,0 +1,31 @@
+General summary:         
+Average percent identity:           99.1
+Fraction of bases aligned:            1.0
+Mean read length:                1,969.2
+Mean read quality:                  22.3
+Median percent identity:            99.2
+Median read length:              1,970.0
+Median read quality:                22.2
+Number of reads:               214,992.0
+Read length N50:                 1,970.0
+STDEV read length:                  20.4
+Total bases:               423,363,364.0
+Total bases aligned:       423,041,993.0
+Number, percentage and megabases of reads above quality cutoffs
+>Q10:	214992 (100.0%) 423.4Mb
+>Q15:	214991 (100.0%) 423.4Mb
+>Q20:	214981 (100.0%) 423.4Mb
+>Q25:	28835 (13.4%) 56.8Mb
+>Q30:	1313 (0.6%) 2.6Mb
+Top 5 highest mean basecall quality scores and their read lengths
+1:	40.1 (1965; c392d76a-4863-468c-8d62-3228e4df2cb9)
+2:	39.1 (1972; 8249b6fd-d5eb-45e5-9f90-4f634885fa56)
+3:	38.0 (1967; 533b5404-8d73-4499-a820-a635d74f058a)
+4:	37.9 (1973; ca2b5b28-2840-47a9-b0ed-dc92bf31f6b5)
+5:	37.8 (1970; b76f9f09-9834-44d0-972e-421428bb84f6)
+Top 5 longest reads and their mean basecall quality score
+1:	2182 (25.8; dfa94a02-cf06-49b1-a057-7128c71e1d3b)
+2:	2179 (21.0; 5a8acfe4-4b12-433f-873a-da8930c57d18)
+3:	2166 (20.5; 95bb9e4e-8cf4-4c81-a56c-474d1f8617b4)
+4:	2164 (20.7; 462b5d3e-a77c-4d66-9a2f-58872a367efb)
+5:	2163 (21.2; e7233694-1f21-4afb-b499-cdbf9b140294)
