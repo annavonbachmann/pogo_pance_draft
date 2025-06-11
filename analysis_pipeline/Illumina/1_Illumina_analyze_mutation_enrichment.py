@@ -46,13 +46,13 @@ read_directions = [ "R1", "R2"] # ["R1", "R2"] or ["R1"] or ["R2"]
 # --- Define data types to analyze: DNA, protein (AA), or Codons ---
 datatypes = [ "DNA", "AA", "Codons"]
 
-# --- Define start and end sequences that span the region of interest (ROI) ---
+# --- Define start and end sequences that span the region of interest (ROI), here, start (end) of LOV ---
 roi_startseq = "ttagccacaa".upper() 
 roi_endseq = "cggccaaa".upper()
 
 # --- Set filtering behavior based on region of interest ---
 filter_for_reads_with_roi = True # if True, only reads that include the roi are considered for the analysis
-cut_to_roi = True # if True, the reads will be filtered for the region of interest, if False, the whole read will be considered for the analysis
+cut_to_roi = True # if True, the reads will be filtered for the region of interest (region before/after the roi will be filtered out), if False, the whole read will be considered for the analysis
 
 # --- Extract additional parameters from config ---
 variant = config["variant"] 

@@ -41,7 +41,7 @@ if __name__ == "__main__":
         #     - `-i`: specify the input FASTQ file
         #     - Output is piped to `gzip`
                 
-        command = f"chopper -q 20 --minlength 1800 --maxlength 2200  -i {input_folder}/{input_file} | gzip > {output_file}" #--headcrop 50 --endcrop 50 --minlength 1800 --maxlength 2100 
+        command = f"chopper -q 20 --minlength 1800 --maxlength 2200  -i {input_folder}/{input_file} | gzip > {output_file}" 
         print(f"Processing {input_file} -> {output_file}")
 
         # --- Run the command in the shell and raise error on failure ---

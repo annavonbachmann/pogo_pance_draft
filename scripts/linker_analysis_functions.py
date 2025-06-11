@@ -94,11 +94,7 @@ def get_linker_variants(linker_alignments, wt_linker = "SG", read_dir = "R1"):
             print("sequence", hseq, "does not meet any criteria")
         
         linker_list.append(linker)
-        # --- Debug print for specific linker ---
-        if linker and linker == "D*RKPAV": 
-            print("hseq", hseq)
-            print("qseq", qseq)
-            print("linker", linker)
+        
     print(frameshifts, "reads excluded due to frameshifts")
 
     return linker_counts, linker_list

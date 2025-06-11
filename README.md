@@ -47,25 +47,25 @@ Each dataset includes a `config.json` file specifying parameters such as referen
 #### Included Datasets
 
 - **LOV_DP6_Library_Mutagenesis_10-8**  
-  DP6 mutagenesis screen; analyzed for mutation enrichment and spectrum.
+  DP6 mutagenesis screen of AraC-LOV; analyzed for mutation enrichment and spectrum.
 
 - **LOV_Linker_Library_Mutagenesis_10-8**  
-  DMS library (RL8); targeted mutation rates and spectrum.
+  DMS library (RL8) screen of AraC-LOV (targeting the LOV region); targeted mutation rates and spectrum.
 
 - **Linker_Library_Mutagenesis_10-8**  
-  Linker library (RL1) analysis with indels.
+  Linker library (RL1) analysis of AraC-LOV with indels and substitutions at linker sites.
 
 - **RAMPhaGE_Plasmid_Library_NGS**  
-  Input sequencing of retron libraries:  
+  Sequencing of the input retron libraries:  
   - `BC1`: linker library  
-  - `BC2`: DMS (AraC-LOV2)  
+  - `BC3`: DMS (targeting LOV2 in AraC-LOV)  
   - Only forward reads used to avoid reverse read quality artifacts.
 
 - **AraC-LOV_RAMPhaGE_Multi-library_NGS**  
   Combined DMS (BC1) and linker (BC2) analysis.
 
 - **AraC-R2-LOV_POGO_RAMPhaGE_NGS**  
-  Linker evolution experiment; two post-mutagenesis pools sequenced (BC2 and BC3).
+  Linker evolution experiment; one pool sequenced after mutagenesis (BC1) and two pools sequenced at the final day (BC2 and BC3).
 
 ### Nanopore Data Overview
 
@@ -105,7 +105,7 @@ Flow cytometry data from FACS experiments were analyzed using the `cytoflow` pac
 
 #### Automated Analysis Workflow
 
-Run the following scripts sequentially to perform the analysis. Make sure to set the correct parameters for your analysis first. All scripts located at `analysis_pipeline/Illumina`
+Run the following scripts sequentially to perform the analysis. Make sure to set the correct parameters for your analysis first (at the beginning of the respective scripts and/or your `config.json` file). All scripts located at `analysis_pipeline/Illumina`
 
 ```bash
 python 0_Illumina_preprocess_and_align_illumina_reads.py input_folder --save_ref

@@ -67,7 +67,7 @@ quality_score = {
 
 
 # --- Read fastq files and filter reads based on low-quality scores ---
-# Returns a- and b-reads along with read IDs and (optionally) quality scores
+# Returns forward (a-) and reverse (b-) reads along with read IDs and (optionally) quality scores
 a_seq, b_seq, _, _, a_ids, b_ids = read_sequences(variant = variant, cutoff_a_read = cutoff_a_read, cutoff_b_read = cutoff_b_read, catch_left=catch_left, catch_right=catch_right, return_qualities_ids=True, quality_score=remove_read_qualities, base_dir = base_dir)
 
 # --- Assign reads to barcode groups and align with expected primers (allowing mismatches) ---
@@ -87,13 +87,12 @@ for Bc in used_Barcodes:
 
     for section in Sections:
         # Generate and store reference sequence if requested
-        if save_ref: # Only if save_ref is True, are the reference sequences saved. Otherwise, the reference sequences have to be provided prior to running the script in the references folder, with the correct file names (e.g. {variant}_{Bc}_{section}_Nt_filt_ref.fasta)
+        if save_ref: # Only if save_ref is True, the reference sequences are saved. Otherwise, the reference sequences have to be provided prior to running the script in the references folder, with the correct file names (e.g. {variant}_{Bc}_{section}_Nt_filt_ref.fasta)
             ref = find_reference_seq(ref_gene=amplicon, Primer_seq=Primer_seq, Section=section, Primer_out_of_frame=Primer_out_of_frame) 
             ref_sequences = [SeqRecord(Seq(ref), id = f"{variant}_{section}_ref", description = f"{variant} {section} DNA sequence")]
 
         for Read_dir in ["R1", "R2"]:
             # Get reads for this barcode/section and reverse-complement R2 reads
-            seqs = all_reads[f"{Bc}_{section}_{Read_dir}"]
             reads = all_reads[f"{Bc}_{section}_{Read_dir}"] if Read_dir == "R1" else [dna_rev_comp(r) for r in all_reads[f"{Bc}_{section}_{Read_dir}"]]
 
             output_file = f"{base_dir}/preprocessed/{variant}_{Bc}_{section}_Nt_filt_{Read_dir}.fasta"
@@ -127,6 +126,7 @@ blast_db_dir.mkdir(parents=True, exist_ok=True)
 
 # --- Create BLAST databases for each read file (self-alignment approach) ---
 for read_file in input_dir.glob("*.fasta"):
+
     read_basename = read_file.stem 
     db_path = blast_db_dir / read_basename
 
@@ -140,10 +140,9 @@ for read_file in input_dir.glob("*.fasta"):
 
 # --- Run BLAST alignment: reference vs. processed reads ---
 for read_file in input_dir.glob("*.fasta"):
+
     read_basename = read_file.stem
-
     ref_file = reference_dir / f"{read_basename[:-2]}ref.fasta"
-
     read_basename = read_file.stem
     db_path = blast_db_dir / read_basename
     output_file = output_dir / f"{read_basename}.out"

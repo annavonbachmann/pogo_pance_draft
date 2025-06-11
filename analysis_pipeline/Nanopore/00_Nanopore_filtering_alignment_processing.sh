@@ -31,6 +31,8 @@ do
     echo "################## Plotting quality plots for $barcode... ##################"
     python3 "$repo_root/analysis_pipeline/Nanopore/03_Nanopore_quality_control.py" "$output_folder/minimap2_alignment" "$output_plot_folder"
 
+    ## IMPORTANT: when you are analyzing linkers, you can skip the next step, since we are using the minimap2 alignments for further analysis (instead of the reads that are enforced to be in-frame (below), because for linkers, we encode indels in the library and thus expect them to be present in the reads)
+
     echo "################## Running read processing for $barcode... ##################"
     python3 "$repo_root/analysis_pipeline/Nanopore/04_Nanopore_process_reads.py" "$output_folder/minimap2_alignment" "$output_folder/processed_reads" "$reference_file"
 

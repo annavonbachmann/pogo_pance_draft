@@ -6,7 +6,8 @@ import pandas as pd
 import csv
 from scripts.Nanopore_functions import read_cleaning_
 
-# --- Main entry point: ensures this script is executed only when run directly ---
+# --- Process Nanopore reads, mainly enforcing in-frame alignment of reads (necessary due to high Nanopore sequencing noise) ---
+
 if __name__ == "__main__":
     # --- Set up command-line argument parser to accept input/output paths and reference file ---
     parser = argparse.ArgumentParser(description="Filter and demultiplex reads.")

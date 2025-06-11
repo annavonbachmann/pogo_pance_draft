@@ -8,7 +8,7 @@ import glob
 from scripts.utils import dna_rev_comp, translate_dna2aa
 import pandas as pd
 import seaborn as sns
-from preprocessing_functions import *
+from scripts.preprocessing_functions import *
 import pickle as pkl
 import matplotlib.colors as mcolors
 import os.path

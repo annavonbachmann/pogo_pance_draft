@@ -50,7 +50,7 @@ variant = config["variant"]
 used_Barcodes = config["used_Barcodes"]
 Sections = config["Sections"] 
 
-min_coverage = 2000 # Minimum read coverage required for enrichment to be valid
+min_coverage = 2000 # Minimum read coverage required to include a position in the downstream analysis
 data_type = "AA" # Data type to analyze: "DNA" or "AA"
 
 colors = ["#22577A", "#C7F9CC"] # Light green to light blue

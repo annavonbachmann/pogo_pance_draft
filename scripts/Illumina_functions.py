@@ -209,7 +209,7 @@ def characterize_DMS_blast_alignment(DMS_alignments, ref, data_type = "AA", read
 
 def calc_mut_spectrum_from_enrichment(enrichment_df, ref_seq, data_type = "DNA", set_diag_to_NA = True):
     """
-    Constructs a mutation matrix: ref (row) → mutated (column).
+    Constructs a mutation matrix: ref (row) -> mutated (column).
 
     Parameters:
     - enrichment_df: Dataframe with the counts of each AA/Codon/Nt at each position

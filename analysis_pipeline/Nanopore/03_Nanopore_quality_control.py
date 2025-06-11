@@ -2,6 +2,7 @@ import os
 import argparse
 import subprocess
 
+# --- Use NanoPlot for visualization of read quality and alignment quality ---
 
 if __name__ == "__main__":
     # --- Set up argument parser for input and output folder paths ---

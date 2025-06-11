@@ -96,7 +96,7 @@ def characterize_DMS_Nanopore(aligned_reads, ref, data_type = "AA"):
 # --- Processes BAM files to clean reads and align them to reference with frame correction ---
 def read_cleaning_(input_folder, ref, cut_n_bases_from_start=48):
     """
-    Cleans and aligns Nanopore reads to force frame consistency and handle indels.
+    Cleans and aligns Nanopore reads to force frame consistency and correct for indels.
 
     Parameters:
     - input_folder: Path to folder containing .bam files (str)
