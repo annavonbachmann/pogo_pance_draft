@@ -26,7 +26,6 @@ repo-root/
 ├── data/
 │   ├── Flow_cytometry_raw_data/
 │   ├── Illumina/
-│   │   └── ... experiment_name
 │   └── Nanopore/
 │       ├── Nanopore_P0109/
 │       └── Nanopore_P0115/
