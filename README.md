@@ -7,7 +7,7 @@ Allostery, the transmission of locally induced conformational changes to distant
 For more details, please refer to our manuscript: [insert link here]
 
 ## Requirements
-All analysis was conducted using Python version 3.11.1.
+All analysis was conducted using Python version 3.9.1.
 
 To use this repository, make sure you have conda or mamba installed on your device. Then run:
 ``` bash
