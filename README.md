@@ -69,11 +69,11 @@ Each dataset includes a `config.json` file specifying parameters such as referen
 
 ### Nanopore Data Overview
 
-All Nanopore datasets were processed using the same preprocessing pipeline. Basecalling was done with high-accuracy settings; only reads with matching barcodes were used.
+All Nanopore datasets were processed using the same preprocessing pipeline. Basecalling was done with super high-accuracy settings; only reads with matching barcodes were used.
 
 - Preprocessed reads are stored in the Zenodo repository at [insert link here]
 - Results of the analysis are saved in `/final_output/Nanopore/Nanopore_{ID}/{barcode_name}`
-- Raw data (high-accuracy basecalling): in Zenodo repository at [insert link here]
+- Raw data (super high-accuracy basecalling): in Zenodo repository at [insert link here]
 
 #### Included Datasets
 
