@@ -8,6 +8,7 @@ import glob
 from scripts.utils import dna_rev_comp, translate_dna2aa
 import pandas as pd
 import seaborn as sns
+from preprocessing_functions import *
 import pickle as pkl
 import matplotlib.colors as mcolors
 import os.path
@@ -282,7 +283,7 @@ def gather_nt_variants(a_seq,
 
     return mutation_dict
 
-
+# ---  Processes reads for given variants ---
 def process_reads(ref_prot, 
                   ref_gene,
                   variants = None, 
@@ -297,17 +298,19 @@ def process_reads(ref_prot,
                   n_mut_treshold = 10,
                   filter_for_read_len = None):
     """
-    process reads for given variants, i.e. generate dictionaries with the counts of each amino acid, codon and nucleotide at each position from fastq-files
+    Process reads for given variants, i.e. generate dictionaries with the counts of each amino acid, codon and nucleotide at each position from fastq-files.
 
-    variants: list of variants to process (variant names of the fastq files, which follow this structure {variant}_R1_001.fastq and {variant}_R2_001.fastq), if None, all variants in the fastq folder are processed
-    catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
-    use_forward_read, use_rev_read: whether or not to include the forward read (R1) and/or reverse read (R2) in the analysis (default: True)
-    arbitrary_cutoff_a, arbitrary_cutoff_b: where to cut off the forward (rev) sequence ( = maximum length of the reads, otherwise the cutoff is determined by the quality score = 1% (default) error rate)
-    quality_score: list of quality scores, at which the reads should be aborted (default: 1% error rate)
-    n_mut_treshold: number of mutations at which a read is excluded from the analysis (default: 10), if None, no filtering for n_mut
-    filter_for_read_len: tuple (threshold a_reads, treshold b_reads) to filter out reads with a len(read)<treshold (default: None, i.e. no filtering for read length)
+    Paramters:
+    - variants: list of variants to process (variant names of the fastq files, which follow this structure {variant}_R1_001.fastq and {variant}_R2_001.fastq), if None, all variants in the fastq folder are processed
+    - catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
+    - use_forward_read, use_rev_read: whether or not to include the forward read (R1) and/or reverse read (R2) in the analysis (default: True)
+    - arbitrary_cutoff_a, arbitrary_cutoff_b: where to cut off the forward (rev) sequence ( = maximum length of the reads, otherwise the cutoff is determined by the quality score = 1% (default) error rate)
+    - quality_score: list of quality scores, at which the reads should be aborted (default: 1% error rate)
+    - n_mut_treshold: number of mutations at which a read is excluded from the analysis (default: 10), if None, no filtering for n_mut
+    - filter_for_read_len: tuple (threshold a_reads, treshold b_reads) to filter out reads with a len(read)<treshold (default: None, i.e. no filtering for read length)
 
-    returns: dict with the counts of each amino acid, codon and nucleotide at each position for each variant
+    Returns:
+    - returns: dict with the counts of each amino acid, codon and nucleotide at each position for each variant
     """
 
     variants_dict = {}
@@ -335,19 +338,21 @@ def process_reads(ref_prot,
 
     return variants_dict
 
-
+# --- Extracts AA, Codon or Nucleotide variants for a given set of sequences ---
 def get_variants(a_seq,b_seq, ref_prot, ref_gene ,catch_right , catch_left , use_rev_read=True,use_forward_read=True):
     """
-    get the amino acid, codon and nucleotide variants for a given set of sequences
+    Get the amino acid, codon and nucleotide variants for a given set of sequences
 
-    a_seq: list of forward reads (R1)
-    b_seq: list of reverse reads (R2)
-    ref_prot: reference AA sequence
-    ref_gene: reference DNA sequence
-    catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
-    use_forward_read, use_rev_read: whether or not to include the foward read (R1) and/or reverse read (R2) in the analysis (default: True)
+    Parameters:
+    - a_seq: list of forward reads (R1)
+    - b_seq: list of reverse reads (R2)
+    - ref_prot: reference AA sequence
+    - ref_gene: reference DNA sequence
+    - catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
+    - use_forward_read, use_rev_read: whether or not to include the foward read (R1) and/or reverse read (R2) in the analysis (default: True)
 
-    returns: dictionary with the counts of each amino acid, codon and nucleotide at each position
+    Returns: 
+    - dictionary with the counts of each amino acid, codon and nucleotide at each position
     """
     
     variants_dict = {}
@@ -358,20 +363,22 @@ def get_variants(a_seq,b_seq, ref_prot, ref_gene ,catch_right , catch_left , use
 
     return variants_dict
 
-
+# --- Masks reference Nt/Codon/AA with counts of each Nt/Codon/AA at each position ---
 def mask_ref_in_variants_df(variant_df:pd.DataFrame,
                             ref_seq:str, 
                             data_type:str,
                             reverse:bool = False):
     """
-    mask (set to np.nan) reference Nt/Codon/AA in dataframe with the counts of each Nt/Codon/AA at each position
+    Mask reference Nt/Codon/AA in dataframe with the counts of each Nt/Codon/AA at each position
 
-    variants_df: dataframe with the counts of each AA/Codon/Nt at each position
-    ref_seq: reference DNA (if data_type = "DNA" or "Codon") or AA (if data_type = "AA") sequence
-    data_type: "AA", "DNA" or "Codon"
-    reverse: whether the reverse read only is used, i.e. the analysis focuses on the end of the reference sequence 
+    Parameters:
+    - variants_df: dataframe with the counts of each AA/Codon/Nt at each position
+    - ref_seq: reference DNA (if data_type = "DNA" or "Codon") or AA (if data_type = "AA") sequence
+    - data_type: "AA", "DNA" or "Codon"
+    - reverse: whether the reverse read only is used, i.e. the analysis focuses on the end of the reference sequence 
 
-    returns: pd dataframe with the counts, pd.dataframe with relative frequencies
+    Returns: 
+    - pd dataframe with the counts, pd.dataframe with relative frequencies
     """
     variant_df = variant_df.copy()
     read_len = variant_df.shape[1]
@@ -471,7 +478,7 @@ def mut_spectrum(a_seq,
     return mut_spec_df, mut_spec_perc
 
 
-### calculate the mutagenic spectrum codon-wise
+# --- Calculate the mutagenic spectrum codon-wise ---
 def mut_spectrum_codons(a_seq,
                         b_seq, 
                         reference_seq, 
@@ -481,20 +488,23 @@ def mut_spectrum_codons(a_seq,
                         catch_right = "",
                         set_diag_to_NA = True):
     """
-    calculate mutagenic spectrum (Codon changes) (counts and percentage) for a given set of sequences
+    Calculates mutagenic spectrum for a given set of sequences
 
-    a_seq, b_seq: list of foward (reverse) sequences (R1, R2)
-    reference_seq: reference DNA sequence
-    use_forward_read, use_rev_read: whether or not to include the foward read (R1) and/or reverse read (R2) in the analysis (default: True)
-    catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
-    set_diag_to_NA: whether or not to set the diagonal (no change) of the mutagenic spectrum to np.nan (default: True)
+    Parameters:
+    - a_seq, b_seq: list of foward (reverse) sequences (R1, R2)
+    - reference_seq: reference DNA sequence
+    - use_forward_read, use_rev_read: whether or not to include the foward read (R1) and/or reverse read (R2) in the analysis (default: True)
+    - catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
+    - set_diag_to_NA: whether or not to set the diagonal (no change) of the mutagenic spectrum to np.nan (default: True)
     
-    returns two dataframes: (1) with the total counts of the mutagenic spectrum and (2) with percentages of the mutagenic spectrum (rows = ref codon, columns = read codon)
+    Returns:
+    - DataFrame with the total counts of the mutagenic spectrum
+    - DataFrame with percentages of the mutagenic spectrum (rows = ref codon, columns = read codon)
     """
 
     codons = ['AAA', 'AAC', 'AAG', 'AAT', 'ACA', 'ACC', 'ACG', 'ACT', 'AGA', 'AGC', 'AGG', 'AGT', 'ATA', 'ATC', 'ATG', 'ATT', 'CAA', 'CAC', 'CAG', 'CAT', 'CCA', 'CCC', 'CCG', 'CCT', 'CGA', 'CGC', 'CGG', 'CGT', 'CTA', 'CTC', 'CTG', 'CTT', 'GAA', 'GAC', 'GAG', 'GAT', 'GCA', 'GCC', 'GCG', 'GCT', 'GGA', 'GGC', 'GGG', 'GGT', 'GTA', 'GTC', 'GTG', 'GTT', 'TAA', 'TAC', 'TAG', 'TAT', 'TCA', 'TCC', 'TCG', 'TCT', 'TGA', 'TGC', 'TGG', 'TGT', 'TTA', 'TTC', 'TTG', 'TTT']
 
-    ## reference codon : {mutated codon: count}
+    # Reference codon : {mutated codon: count}
     mut_spec = {ref_codon: {codon:0 for codon in codons} for ref_codon in codons}
 
     ref_codons = [reference_seq[i:i+3] for i in range(0,len(reference_seq)//3*3,3)]
@@ -531,13 +541,13 @@ def mut_spectrum_codons(a_seq,
     if set_diag_to_NA:
         np.fill_diagonal(mut_spec_df.values, np.nan)
 
-    ## calculate mutagenic spectrum in percentage
+    # Calculate mutagenic spectrum in percentage
     total_n_muts = mut_spec_df.sum().sum()
     mut_spec_perc = mut_spec_df/total_n_muts*100
 
     return mut_spec_df, mut_spec_perc
 
-
+# --- Finds positions with a mutation rate above threshold and position with coverage above coverage threshold ---
 def find_mutated_pos(read_dict,
                     Section, 
                     ref_gene, 
@@ -551,22 +561,25 @@ def find_mutated_pos(read_dict,
                     mut_rate_filter_treshold = 0.05, 
                     cov_filter_treshold=50):
     """
-    find the positions with a mutation rate above the mut_rate_filter_treshold and the positions with a coverage above the cov_filter_treshold
+    Finds the positions with a mutation rate above the mut_rate_filter_treshold and the positions with a coverage above the cov_filter_treshold
 
-    read_dict = dictionary with the reads (following this naming convention: {cyclename}_{Barcode}_{Section}_R1:[read1_a, read2_a], {cyclename}_{Barcode}_{Section}_R2: [read1_b, read2_b],...})
-    Bc = name of the barcode, if None, it is expected that the read does not include the BC seq anymore
-    seq_include_Primer_start = whether or not the sequence includes the primer start, i.e. whether correction for triplet starts already happended during multiplexing (default: False), only used if Bc = None
-    Barcodes = dictionary with the barcode sequences, following the structure {BC1_fwd : seq, BC1_rev : seq, BC2_fwd : seq, ...}, can be None, if the reads do not include the BC seq anymore (e.g. by calling "cut_BC_seq" during demultiplexing)
-    Section = name of the section of interest
-    ref_gene = reference gene sequence
-    Primer_seq = dictionary with primer sequences, following the structure {S1_fwd : seq, S1_rev : seq, S2_fwd : seq, ...}
-    Primer_out_of_triplets = dictionary with the number of nucleotides at the beginning of the primer seq before a triplet starts, following the structure {S1_fwd : int, S1_rev : int, S2_fwd : int, ...}
-    data_type = "AA", "Codons" "DNA"
-    cyclename = name of the cycle
-    filter_treshold = treshold for the mutation rate
-    cov_filter_treshold = treshold for the coverage
+    Parameters:
+    - read_dict = dictionary with the reads (following this naming convention: {cyclename}_{Barcode}_{Section}_R1:[read1_a, read2_a], {cyclename}_{Barcode}_{Section}_R2: [read1_b, read2_b],...})
+    - Bc = name of the barcode, if None, it is expected that the read does not include the BC seq anymore
+    - seq_include_Primer_start = whether or not the sequence includes the primer start, i.e. whether correction for triplet starts already happended during multiplexing (default: False), only used if Bc = None
+    - Barcodes = dictionary with the barcode sequences, following the structure {BC1_fwd : seq, BC1_rev : seq, BC2_fwd : seq, ...}, can be None, if the reads do not include the BC seq anymore (e.g. by calling "cut_BC_seq" during demultiplexing)
+    - Section = name of the section of interest
+    - ref_gene = reference gene sequence
+    - Primer_seq = dictionary with primer sequences, following the structure {S1_fwd : seq, S1_rev : seq, S2_fwd : seq, ...}
+    - Primer_out_of_triplets = dictionary with the number of nucleotides at the beginning of the primer seq before a triplet starts, following the structure {S1_fwd : int, S1_rev : int, S2_fwd : int, ...}
+    - data_type = "AA", "Codons" "DNA"
+    - cyclename = name of the cycle
+    - filter_treshold = treshold for the mutation rate
+    - cov_filter_treshold = treshold for the coverage
 
-    returns: list of positions with mutation rate above mut_rate_filter_treshold, list of positions with coverage above cov_filter_treshold
+    Returns: 
+    - list of positions with mutation rate above mut_rate_filter_treshold
+    - list of positions with coverage above cov_filter_treshold
     """
 
     dataType_handler = {"DNA": gather_nt_variants, "Codons": gather_codon_variants, "AA": gather_AA_variants}
@@ -599,7 +612,7 @@ def find_mutated_pos(read_dict,
 
     _, seq_variants_freq = mask_ref_in_variants_df(ref_seq = ref, variant_df = seq_variants, data_type = data_type)
 
-    ## combine mutation rates
+    # Combine mutation rates
     seq_variants_freq = seq_variants_freq.sum(axis = 0)
     low_cov_pos = coverages[coverages<cov_filter_treshold].index 
     high_mut_positions = seq_variants_freq[seq_variants_freq > mut_rate_filter_treshold].index
@@ -607,7 +620,7 @@ def find_mutated_pos(read_dict,
     return list(high_mut_positions), list(low_cov_pos)
 
 
-### calculate sum of single, double and triple mutants
+# --- Calculate sum of single, double and triple mutants ---
 def gather_n_mutations(a_seq, 
                        b_seq, 
                        reference_seq, 
@@ -618,18 +631,20 @@ def gather_n_mutations(a_seq,
                        use_triplets = False, 
                        return_seqs_pos = False):
     """
-    create a dictionary with the number of single, double, triple (...) mutants, also a dict with the seqs and the positions of the mutations (if return_seqs_pos = True)
+    Creates a dictionary with the number of single, double, triple (...) mutants, also a dict with the seqs and the positions of the mutations (if return_seqs_pos = True)
     !! positions are based on the reference sequence (i.e. does not match location in (reverse) b_reads directly)
     !! if use_triplets = True, the positions refer to the codons (AAs), otherwise to the nucleotides
 
-    a_seq, b_seq: list of sequences
-    reference_seq: reference DNA sequence
-    catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
-    use_forward_read, use_rev_read: whether or not to include the foward read (R1) and/or reverse read (R2) in the analysis (default: True)
-    use_triplets: if True, the analysis is done on codons, otherwise (default) on nucleotides 
-    return_seq_pos: if True, also return the sequences and the positions of the mutations as as second dictionary
+    Parameters:
+    - a_seq, b_seq: list of sequences
+    - reference_seq: reference DNA sequence
+    - catch_left, catch_right: start (end) of the sequence in the forward read (R1) (reverse read (R2)), e.g. Barcodes (will not be included in the analysis)
+    - use_forward_read, use_rev_read: whether or not to include the foward read (R1) and/or reverse read (R2) in the analysis (default: True)
+    - use_triplets: if True, the analysis is done on codons, otherwise (default) on nucleotides 
+    - return_seq_pos: if True, also return the sequences and the positions of the mutations as as second dictionary
 
-    returns: dictionary with the number of single, double, triple (...) mutants {n_muts : count}, if return_seqs_pos = True, also a dictionary with the sequences and the positions of the mutations {n_muts : [(aSeq1, bSeq1, mut_pos_aSeq1, mut_pos_bSeq1), ...]}
+    Returns: 
+    - dictionary with the number of single, double, triple (...) mutants {n_muts : count}, if return_seqs_pos = True, also a dictionary with the sequences and the positions of the mutations {n_muts : [(aSeq1, bSeq1, mut_pos_aSeq1, mut_pos_bSeq1), ...]}
     """
     mutation_dict = {}  
     if return_seqs_pos: 
@@ -693,7 +708,7 @@ def gather_n_mutations(a_seq,
     else: 
         return mutation_dict
         
-
+# --- Gets linker variants ---
 def get_linker_variants(reads, 
                         seq_before_linker, 
                         seq_after_linker, 
@@ -708,34 +723,36 @@ def get_linker_variants(reads,
                         filter_treshold = 0.05
                         ):
     """
-    get linker variants
+    Get linker variants
 
-    reads: list of sequences (if R2 read, call dna_rev_comp on the sequences prior to calling this function)
-    seq_before_linker: short DNA sequence before the linker (8-10 bp)
-    seq_after_linker: short DNA sequence after the linker
-    wt_linker: linker DNA sequence
-    total_seq_before_linker: sequence from the beginning of the read until the linker sequence
-    intended_changes: indels and mutations (deletions are handeled separately) that are intended to be introduced by the retron library
-    rev_reads: whether or not the reads are from the R2 read (on which dna_rev_comp was called already) (default: False)
-    include_changes_after_linker: whether or not to include reads that do not contain the sequence after linker, but are in principle long enough, in the analysis (default: False) -> are counted within "other" --> probably due to unintended changes (off-target retron editing), mutations or sequencing errors (intended changes are all located prior to or in the linker sequence, i.e. the sequence after the linker should not be affected by the retron editing)
-    include_deletions: whether or not to include deletions in the analysis (default: True) 
-    combine_other: whether or not to combine all "other" (not intended) sequences into one category (default: True)
-    filter_treshold: variants with frequency below filter_treshold (given in %) are filtered out (default: 0.05)
+    Parameters:
+    - reads: list of sequences (if R2 read, call dna_rev_comp on the sequences prior to calling this function)
+    - seq_before_linker: short DNA sequence before the linker (8-10 bp)
+    - seq_after_linker: short DNA sequence after the linker
+    - wt_linker: linker DNA sequence
+    - total_seq_before_linker: sequence from the beginning of the read until the linker sequence
+    - intended_changes: indels and mutations (deletions are handeled separately) that are intended to be introduced by the retron library
+    - rev_reads: whether or not the reads are from the R2 read (on which dna_rev_comp was called already) (default: False)
+    - include_changes_after_linker: whether or not to include reads that do not contain the sequence after linker, but are in principle long enough, in the analysis (default: False) -> are counted within "other" --> probably due to unintended changes (off-target retron editing), mutations or sequencing errors (intended changes are all located prior to or in the linker sequence, i.e. the sequence after the linker should not be affected by the retron editing)
+    - include_deletions: whether or not to include deletions in the analysis (default: True) 
+    - combine_other: whether or not to combine all "other" (not intended) sequences into one category (default: True)
+    - filter_treshold: variants with frequency below filter_treshold (given in %) are filtered out (default: 0.05)
 
-    returns: dictionaries with (1) counts, (2) percents of linker variants, (3) percents of linker variants for AAs
+    Returns: 
+    - dictionaries with (1) counts, (2) percents of linker variants, (3) percents of linker variants for AAs
     """
-    print("total reads",len(reads)) # number of sequences
-    print("reads with target sequence", sum([seq_after_linker in seq for seq in reads])) ## sum of seqences that include the sequence after the linker
+    print("total reads",len(reads)) # Number of sequences
+    print("reads with target sequence", sum([seq_after_linker in seq for seq in reads])) # Sum of seqences that include the sequence after the linker
 
     linker_variants = {}
 
-    for seq in reads:   ## indels and mutations
-        if seq_before_linker in seq and seq_after_linker in seq: ## only consider reads that contain the linker position
+    for seq in reads:   # Indels and mutations
+        if seq_before_linker in seq and seq_after_linker in seq: # Only consider reads that contain the linker position
             start_idx = seq.index(seq_before_linker) + len(seq_before_linker)
             stop_idx = seq.index(seq_after_linker)
             linker = seq[start_idx:stop_idx]
 
-            if linker in intended_changes: ## include intended changes
+            if linker in intended_changes: # Include intended changes
                 if linker in linker_variants.keys():
                     linker_variants[linker] += 1
                 else: 
@@ -747,7 +764,7 @@ def get_linker_variants(reads,
                 else: 
                     linker_variants["wt"] = 1
                 
-            else:  ### include changes not intended to "other" category
+            else:  # Include changes not intended to "other" category
                 if combine_other: 
                     if "other" in linker_variants.keys():
                         linker_variants["other"] += 1
@@ -758,21 +775,21 @@ def get_linker_variants(reads,
                 else: 
                     linker_variants["other_" + linker] = 1
 
-        elif include_deletions: ## deletions
-            deleted_seq = seq_before_linker if not rev_reads else seq_after_linker ## sequence that is deleted (before or after depending on the read orientation)
-            intact_seq = seq_after_linker if not rev_reads else seq_before_linker ## sequence that is not deleted (before or after depending on the read orientation)
+        elif include_deletions: # Deletions
+            deleted_seq = seq_before_linker if not rev_reads else seq_after_linker # Sequence that is deleted (before or after depending on the read orientation)
+            intact_seq = seq_after_linker if not rev_reads else seq_before_linker # Sequence that is not deleted (before or after depending on the read orientation)
 
-            if intact_seq in seq and deleted_seq not in seq: ## because for deletions, we delete at least three bases from the seq before the linker, i.e. seq_before linker is not anymore completely in seq
-                seq_until_deletion = seq[len(adaptor_left):seq.index(intact_seq)] if not rev_reads else seq[seq.index(intact_seq)+len(intact_seq):-len(adaptor_left)] ## sequence with deletion
+            if intact_seq in seq and deleted_seq not in seq: # Because for deletions, we delete at least three bases from the seq before the linker, i.e. seq_before linker is not anymore completely in seq
+                seq_until_deletion = seq[len(adaptor_left):seq.index(intact_seq)] if not rev_reads else seq[seq.index(intact_seq)+len(intact_seq):-len(adaptor_left)] # Sequence with deletion
                 seq_before_deletion = seq_until_deletion[:10]  if rev_reads else seq_until_deletion[:-10]
                 if seq_before_deletion in total_seq:
                     if not rev_reads:
                         del_len = total_seq.index(seq_before_deletion)+len(seq_before_deletion) - (len(total_seq)+len(wt_linker)) ## length of deletion
                     else: 
-                        del_len = -(total_seq.index(seq_before_deletion) + len(wt_linker))## length of deletion
+                        del_len = -(total_seq.index(seq_before_deletion) + len(wt_linker)) # Length of deletion
                     
                     delname = "del"+str(del_len) if del_len !=0 else "del-0"
-                    if del_len <=0: ## no insertion but mutations in seq_before_linker, thus seq_before_linker is not in seq but we do not want to consider these reads
+                    if del_len <=0: # No insertion but mutations in seq_before_linker, thus seq_before_linker is not in seq but we do not want to consider these reads
                         
                         if delname in linker_variants.keys():
                             linker_variants[delname] += 1
@@ -792,7 +809,7 @@ def get_linker_variants(reads,
                             linker_variants["other"+delname] = 1
                         
 
-        elif include_changes_after_linker: ## other (untargeted changes that effect the sequence after the linker)
+        elif include_changes_after_linker: # Other (untargeted changes that effect the sequence after the linker)
             if len(seq) >= len(total_seq)+len(wt_linker)+len(seq_after_linker):
                 if "after_linker" not in linker_variants.keys():
                     linker_variants["after_linker"] = 1
@@ -800,31 +817,31 @@ def get_linker_variants(reads,
                     linker_variants["after_linker"] += 1
 
     total_vars = sum(linker_variants.values())
-    ### percentage
     linker_variants_perc = {seq: count/total_vars*100 for seq,count in linker_variants.items()}
-    ## exclude everything below given filter_treshold
+    # Exclude everything below given filter_treshold
     linker_variants_perc = {seq: count for seq,count in linker_variants_perc.items() if count > filter_treshold}
-    ## order after value size
+    # Order after value size
     linker_variants_perc = dict(sorted(linker_variants_perc.items(), key = lambda x: x[1], reverse = True))
-    ### convert dict keys to AAs
+    # Convert dict keys to AAs
     linker_variants_perc_AA = {(translate_dna2aa(seq) if seq[0] in ["A","C","G","T"] else seq) : count for seq,count in linker_variants_perc.items()}
     linker_variants_perc_AA = dict(sorted(linker_variants_perc_AA.items(), key = lambda x: x[1], reverse = True))
 
     return linker_variants, linker_variants_perc, linker_variants_perc_AA
 
-
-
-### calculate mutagenic spectrum from enrichment dataframes 
+# --- Calculates mutagenic spectrum from enrichment dataframes ---
 
 def calc_mut_spectrum_from_enrichment(enrichment_df, ref_seq, data_type = "DNA", set_diag_to_NA = True):
     """
-    calculate mutagenic spectrum from enrichment dataframes
+    Calculate mutagenic spectrum from enrichment dataframes
 
-    enrichment_df: dataframe with the counts of each AA/Codon/Nt at each position
-    data_type: "AA", "DNA" or "Codons"
-    ref_seq = reference DNA (if data_type = "DNA" or "Codon") or AA (if data_type = "AA") sequence
+    Parameters:
+    - enrichment_df: dataframe with the counts of each AA/Codon/Nt at each position
+    - data_type: "AA", "DNA" or "Codons"
+    - ref_seq = reference DNA (if data_type = "DNA" or "Codon") or AA (if data_type = "AA") sequence
 
-    returns: pd dataframe with the counts, pd.dataframe with relative frequencies
+    Returns:
+    - pd dataframe with the counts
+    - pd.dataframe with relative frequencies
     """
 
     if data_type == "DNA":
@@ -843,13 +860,11 @@ def calc_mut_spectrum_from_enrichment(enrichment_df, ref_seq, data_type = "DNA",
         for mut_nt in enrichment_df.index:
             mut_pos = enrichment_df.iloc[:,idx]
             mut_count = mut_pos[mut_nt]
-            #print(mut_count)
             mut_spectrum.loc[ref_var, mut_nt] += mut_count
     
     if set_diag_to_NA:
         np.fill_diagonal(mut_spectrum.values, np.nan)
     
-    ## percentage
     mut_spectrum_perc = mut_spectrum/mut_spectrum.sum().sum()*100
             
     return mut_spectrum, mut_spectrum_perc

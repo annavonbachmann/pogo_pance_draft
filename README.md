@@ -1,103 +1,147 @@
+![header image](img/README_header.png)
+# Phage-assisted evolution of allosteric protein switches
 
-# Illumina
+## Abstract
+Allostery, the transmission of locally induced conformational changes to distant functional sites, is a key mechanism for protein regulation. Artificial allosteric effectors enable remote manipulation of cell function; their engineering, however, is hampered by our limited understanding of allosteric residue networks. Here, we introduce a phage-assisted evolution platform for in vivo optimization of allosteric proteins. It applies opposing selection pressures to enhance activity and switchability of phage-encoded effectors and leverages retron-based recombineering to broadly explore fitness landscapes, covering point mutations, insertions and deletions. Applying our pipeline to the transcription factor AraC yielded optogenetic variants with light-controlled activity spanning ~1000-fold dynamic range. Long-read sequencing across selection cycles revealed adaptive trajectories and corresponding allosteric interactions. Our work facilitates phage-assisted evolution of allosteric proteins for programmable cellular control.
 
-### Input 
-as input, we provide: 
-1. a **json** file, in which arguments for filtering, and demultiplexing should be specified (thereby, we can later also track which settings were used)
+For more details, please refer to our manuscript: [insert link here]
 
-2. fastq files (forward (R1), reverse (R2) reads) -> the filenames should follow the notation: ({variant name}_{read direction}_001.fastq, e.g. DP6_R1_001.fastq)
+## Requirements
+All analysis was conducted using Python version 3.11.1.
 
-### Analysis
-All of the steps below, are automatized in the `preprocess_and_align_illumina_reads.py` file (steps 1-3) and the `analyze_mutation_enrichment.py` or `characterize_indels_from_blast.py` file (step 4). 
-If you provide the correct input, you can just run these files as follows: 
+To use this repository, make sure you have conda or mamba installed on your device. Then run:
+``` bash
+conda env create -n pogo_pance --file environment.yml
+```
 
-`python preprocess_and_align_illumina_reads.py input_folder --save_ref`
 
-Please make sure to set the correct parameters at the beginning of the `analyze_mutation_enrichment.py` or `characterize_indels_from_blast.py` files!
+## Data
 
-Below, you can find some additional information on the steps included in these files:
+The notebooks in `figure_notebooks` can be executed without the full raw dataset **unless explicitly stated otherwise** in the notebook header. For notebooks requiring original data, please download the corresponding datasets from Zenodo ([link]) and place the extracted contents into a folder named `data` at the root level of the repository.
 
-1. **read filtering:** 	
-	- **quality filtering**: cut reads at first position with error rate > **1%**
-	- **filtering for idx swapping**: only keep reads with same Barcode (BC) in R1, R2
-	- **demultiplexing**: reads are demultiplexed by provided Barcode and Primer sequences
-	- we **cut** the Barcode sequence and primer start, so that the reads are in frame
-	
-2. **save demultiplexed reads as fasta files:**
-	- for each Barcode and each Section, reads are saved as **fasta** files (in the "/preprocessed" folder)
-	- importantly, **reverse** (R2) reads are saved as **reverse complented** sequences !!!!, thereby, they can be mapped directly on the Plus strand of the reference sequence, which simplifies further analysis
-	- if the `--save_ref` tag is provided (**recommended**), the **reference sequence** per section and barcode is also saved as fasta (in "/reference" folder) (based on `amplicon` provided in `config.json` file). If you want to provide the reference sequence yourself, please don't set `--save_ref`, but make sure to provide the reference fasta file(s) within the /reference folder with the right filename(s): {variant}_{Barcode}_{Section}_Nt_filt_ref.fasta (one reference per Barcode and Section (same reference for R1 and R2 reads))
-	
-3. **run blast:**
-		
-	- we align the reads on the **nucleotide** level, since then, frameshift reads can still be aligned
-	- this includes (below, the bast arguments are shown, but this is all automated within the python script `preprocess_and_align_illumina_reads.py`): 
-		1. **creating a blast database** with: 
-			
-			`makeblastdb -in preprocessed/DP6_BC1_S1_Nt_filt_R1.fasta -dbtype nucl -out blast/db/DP6_BC1_S1_Nt_filt_R1`
-			
-		2. **run blast with:**
-			
-			`blastn -db blast/db/DP6_BC1_S1_Nt_filt_R1 -query references/DP6_BC1_S1_Nt_filt_ref.fasta -out blast/alignments/DP6_BC1_S1_Nt_filt_R1.out -outfmt 15 -max_target_seqs 100000`
+⚠️ **Important:** Maintain the original Zenodo folder structure exactly. The expected directory tree should look like this:
 
-			thereby, `-outfmt 15` stores the output as json files
-			
-4. **Analysis of blast reads:**
-		
-	- please make sure to **set the right parameters** within the file, matching your requirements (e.g. the right filepath, read directory, whether the analysis should be performed on the DNA, AA or Codon level, ...)
-	- filter for reads that are aligned on the insert (e.g. LOV2) site i.e. reads that do not span the insertion site, and AraC variants, that dont have an insert, are excluded
-	- depending on the analysis: 
-		1. **for Retron libary 1 (RL1) (also if combined with RL8)** run: `characterize_indels_from_blast.py` 
-			- separate reads at the insert (e.g LOV2) site in
-				1. sequences that **include the linker sequence**, i.e. read start until insert after linker (e.g. LOV2: LATTLER)
-				2. sequences that include the **insert** (read from the start of the insert until read end (linker **not included** here))
-				
-			the analysis of the insert and linker sequences is performed separately: 
-			- **for sequences spanning the insert**:
-				- filter out reads with **indels** (i.e. reads contain “-” in qseq (inseriton) or hseq(deletion)) → frameshift reads, thereby saving where indels occur
-				- calculate **mutation enrichment** per positon 
-			- **for linker reads**
-				- **filtering:** reads that have deletions or insertions not multiple of 3 are excluded (frameshifts) -> we cannot tell whether these frameshifts are due to sequencing errors or biologically accurate -> thus, we just filter out all of them -> these variants would anyways lead to nonsense proteins
-				- then, the **linker variants** are determined 
+The expected folder structure should look like this:
 
-		2. **for RL8/DP6 DMS screens** run `analyze_mutation_enrichment.py` 
-			- reads are not separated, since we only induce mutations 
-			- exclude reads that are **shifted**, i.e. do not start at the amplicon site (only a small fraction)
-			- exclude reads that have **indels**, thereby saving where these indels occur
-			- calculate **mutation enrichment** for the reads per position
-			- calculate **mutagenic spectrum**, i.e. what mutations are induced
+<pre lang="markdown">
+repo-root/
+├── data/
+│   ├── Flow_cytometry_raw_data/
+│   ├── Illumina/
+│   │   └── ... experiment_name
+│   └── Nanopore/
+│       ├── Nanopore_P0109/
+│       └── Nanopore_P0115/
+</pre>
 
-# Nanopore
+### Illumina Data Overview
 
-### Sequencing
-1. Nanopore sequencing with **Minion/Minknow** software
-	- thereby, basecalling is performed using the model with the **highest accuracy**
+Each dataset includes a `config.json` file specifying parameters such as reference sequences, barcodes, and primer sequences. 
 
-### Read processing
-Please run the `Nanopore_filtering_alignment_processing.sh` script, which automatically runs all steps (1-5) below (make sure to set the right paths within the bash script):
+- Raw and processed data (including alignments) are located in the Zenodo repository at [insert link here]
+- Analysis results (e.g. mutation enrichment, spectra, plots) are saved in `/final_output/Illumina/{experiment}`
 
-2. **Quality filtering** using `chopper` -> filer for read length and average read quality (Q>20)
-	
-3. **alignment** using `minimap2` 
+**Naming conventions:**
+- Each file includes its Barcode (BC) and Section (S) identifiers, e.g. `BC1_S1`
+- Even single-barcode/section datasets use the labels `BC1` and `S1`
+- `R1` = forward read, `R2` = reverse read  
+  - In linker analysis: `R1` = left linker, `R2` = right linker  
 
-4. perform plotting for **quality control** using `NanoPlot` on the .bam files
-	- to run this separately, you can run: 
-		- either, to run on one (or more) bam files (thereby specifying the files themselves)
-			`NanoPlot -t 2 --bam alignment1.bam alignment2.bam alignment3.bam -o bamplots_downsampled`
-		- or, to run the analysis on **all** .bam files within a folder using the `Nanopore_quality_control.py` file: 
-			`python Nanopore_quality_control.py /var/lib/minknow/data/basecalling/pass/barcode09/alignment /home/student/anna/DMS_analysis/output/Nanopore/barcode09/quality_control`
-			(trouble shooting: if an error occurs, this can be if no read is mapped in one of the .bam files, deleting this specific (empty) bam-file fixes this)
+#### Included Datasets
 
-5. **processing**, i.e. force reads in right frame: 
-	- if there is a deletion in a read, this is shown as "-"
-	- if there is an insertion in a read, this base is skipped
-	- the remaining read is kept as it is 
+- **LOV_DP6_Library_Mutagenesis_10-8**  
+  DP6 mutagenesis screen; analyzed for mutation enrichment and spectrum.
 
-	- also: reads are cut so that all start at the same position (here, we consider reads that include ref pos 9 (arbitrary choice))
+- **LOV_Linker_Library_Mutagenesis_10-8**  
+  DMS library (RL8); targeted mutation rates and spectrum.
 
-	- to run this processing step seperately, you can run the `process_Nanopore_reads.py ` file e.g.:
-		`python process_Nanopore_reads.py /var/lib/minknow/data/basecalling/pass/barcode05/alignment/ /home/student/anna/DMS_analysis/data/Nanopore/barcode05 /var/lib/minknow/data/AraC_S170_LOV_R2_ref.fa`
+- **Linker_Library_Mutagenesis_10-8**  
+  Linker library (RL1) analysis with indels.
 
-# pymol
+- **RAMPhaGE_Plasmid_Library_NGS**  
+  Input sequencing of retron libraries:  
+  - `BC1`: linker library  
+  - `BC2`: DMS (AraC-LOV2)  
+  - Only forward reads used to avoid reverse read quality artifacts.
 
-We want to show the enriched mutations on the structure level. Please refer to the `pymol.ipynb` notebook for details on how to modify the .pdb file to store the respective enrichment values. Then, open the modified .pdb file in `pymol` and set the right coloring e.g. with `spectrum b, gray70 marine, minimum=0, maximum=100` (if using a binary coloring). 
+- **AraC-LOV_RAMPhaGE_Multi-library_NGS**  
+  Combined DMS (BC1) and linker (BC2) analysis.
+
+- **AraC-R2-LOV_POGO_RAMPhaGE_NGS**  
+  Linker evolution experiment; two post-mutagenesis pools sequenced (BC2 and BC3).
+
+### Nanopore Data Overview
+
+All Nanopore datasets were processed using the same preprocessing pipeline. Basecalling was done with high-accuracy settings; only reads with matching barcodes were used.
+
+- Preprocessed reads are stored in the Zenodo repository at [insert link here]
+- Results of the analysis are saved in `/final_output/Nanopore/Nanopore_{ID}/{barcode_name}`
+- Raw data (high-accuracy basecalling): in Zenodo repository at [insert link here]
+
+#### Included Datasets
+
+- **Nanopore_P0109**  
+  Final-day sequencing of pools from different POGO setups:
+  - **R2_P1-1_End - R2_P3-1_End**: aligned to **AraC-LOV2-R2**
+  - **R5_P1-1_End - R5_P3-2_End**: aligned to **AraC-LOV2-R5**
+
+
+- **Nanopore_P0115**  
+  - **R2_P1-2_Cycle-1_P-1 - R2-LOV_P2_Pos_D\4**: aligned to **AraC-LOV2-R2**
+  - **DMS_Library_Single_Passage**: aligned to **AraC-LOV2-WT** 
+  - **Single_Retron_Edit_10-10**: single retron edit location
+
+### Flow Cytometry Data
+
+Flow cytometry data from FACS experiments were analyzed using the `cytoflow` package. Data can be found in the Zenodo repository at [insert link here]. The corresponding analysis and visualizations are documented in the notebooks `figure_notebooks/Figure_2.ipynb` and `figure_notebooks/Figure_S2.ipynb`.
+
+
+## Usage
+### Illumina Data Analysis
+
+#### Required Input
+
+1. A `config.json` file containing filtering and demultiplexing parameters located within each experiment folder.
+2. `.fastq` files for forward (`R1`) and reverse (`R2`) reads.  
+   **Filename format:**   `{variant}_{read direction}_001.fastq`  
+   *Example:* `DP6_R1_001.fastq`
+
+#### Automated Analysis Workflow
+
+Run the following scripts sequentially to perform the analysis. Make sure to set the correct parameters for your analysis first. All scripts located at `analysis_pipeline/Illumina`
+
+```bash
+python 0_Illumina_preprocess_and_align_illumina_reads.py input_folder --save_ref
+
+python 1_Illumina_analyze_mutation_enrichment.py
+python 2_Illumina_analyze_linkers.py
+```
+
+For further analysis and visualisation, refer to the notebooks `3_Illumina_DMS_analysis.ipynb` and `4_Illumina_linker_analysis.ipynb` at `analysis_pipeline/Illumina`.
+
+### Nanopore Data Analysis
+
+Raw sequencing input data can be found in the Zenodo repository at [insert link here].
+
+#### Sequencing & Basecalling
+
+- Nanopore sequencing is performed using **MinION** with **Minknow** software.
+- Use **super high-accuracy basecalling** and enable **barcode trimming**.
+- Only keep reads where both ends have matching barcodes.
+
+#### Read processing
+Use the script below to perform all required preprocessing steps, including quality filtering, alignment, and quality control. Scripts located at `analysis_pipeline/Nanopore`.
+
+```bash
+bash 00_Nanopore_filtering_alignment_processing.sh
+```
+⚠️ **Important:** If you are analyzing linker variants, **do not** run the last step of the pipeline (script `04_Nanopore_process_reads.py`) (in-frame forcing).
+Instead, skip this step and start from .bam files using: `2_Nanopore_linker_analysis.ipynb`
+
+## PyMOL Structural Visualization
+
+Positional enrichment data — derived from Nanopore-based variant frequency analysis — were mapped onto residue positions using a custom PyMOL coloring script.
+
+The relevant scripts can be found in:
+- `scripts/impose_enrichment_on_pymol.py` – for enrichment mapping
+- `scripts/pymol/` – for individual `.pml` visualization files
