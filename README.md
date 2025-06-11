@@ -21,8 +21,6 @@ The notebooks in `figure_notebooks` can be executed without the full raw dataset
 
 ⚠️ **Important:** Maintain the original Zenodo folder structure exactly. The expected directory tree should look like this:
 
-The expected folder structure should look like this:
-
 <pre lang="markdown">
 repo-root/
 ├── data/
